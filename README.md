@@ -54,7 +54,7 @@ A student can either type or record their question. The system automatically rou
 | **Templates & Frontend** | Jinja2 (HTML templating), Vanilla JavaScript, CSS |
 | **Vector Search**     | FAISS (via `langchain-community`)                |
 | **Embeddings**        | HuggingFace Embeddings (`sentence-transformers/distiluse-base-multilingual-cased-v1`) |
-| **Large Language Model** | Ollama (local LLM inference)                    |
+| **Large Language Model** | Ollama commen-r7b-arabic (local LLM inference)                    |
 | **Speech-to-Text**    | OpenAI Whisper                                   |
 | **Text-to-Speech**    | Azure Cognitive Services (TTS) / gTTS            |
 | **Audio I/O**         | `aiofiles`, JavaScript Audio API                 |
