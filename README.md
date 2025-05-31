@@ -1,14 +1,14 @@
 
-# معلمي (Muallimi)
+# معلمي (mualimy)
 
 ## Project Overview
 
-**معلمي (Muallimi)** is a web-based conversational application designed to assist students by acting as a virtual teacher. It leverages a Retrieval-Augmented Generation (RAG) pipeline built on LangChain, local LLM inference via Ollama, and speech-to-text / text-to-speech capabilities to provide interactive, subject-specific answers (Physics, Chemistry, Biology) in Arabic.  
+**معلمي (mualimy)** is a web-based conversational application designed to assist students by acting as a virtual teacher. It leverages a Retrieval-Augmented Generation (RAG) pipeline built on LangChain, local LLM inference via Ollama, and speech-to-text / text-to-speech capabilities to provide interactive, subject-specific answers (Physics, Chemistry, Biology) in Arabic.  
 
 A student can either type or record their question. The system automatically routes the query to the appropriate subject database, fetches relevant documents via FAISS embeddings, and generates a contextual answer with an optional audio response.
 
 
-![معلمي Interface](static/muallimi_screenshot.png)
+![معلمي Interface](static/mualimy_screenshot.png)
 
 ---
 
@@ -155,7 +155,7 @@ Click “تصدير المحادثة” to download a .txt transcript of the cha
 
 Project Structure
 
-muallimi/
+mualimy/
 ├── db_biology/                   # FAISS index & metadata for Biology
 ├── db_chemistry/                 # FAISS index & metadata for Chemistry
 ├── db_physics/                   # FAISS index & metadata for Physics
