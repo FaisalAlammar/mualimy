@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>مُــعــلِــمــي</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <!-- jsPDF لتصدير المحادثة -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <!-- هيدر ثابت فيه اللوقو والعنوان والأزرار -->
+  <header class="custom-header">
+    <div class="header-content">
+      <img src="/static/logo-h.png" alt="شعار طويق" class="logo-fixed">
+      <h1 class="chat-title">مُــعــلِــمــي</h1>
+      <div class="controls">
+        <button id="reset-btn">بدء محادثة جديدة</button>
+        <button id="download-btn">تصدير المحادثة</button>
+        
+      </div>
+    </div>
+  </header>
+
+  <div class="chat-container">
+    <div id="chat-box" class="chat-box"></div>
+    <form id="chat-form">
+      <input type="text" id="question" name="question" placeholder="اكتب سؤالك هنا..." required autocomplete="off">
+      <button type="submit">إرسال</button>
+      <button type="button" id="voice-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 24 24">
+    <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12Z"/>
+  </svg>
+</button>
+
+    </form>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script>
+    window.jspdf = window.jspdf || jsPDF;
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/MohammadAlAwni/jspdf-arabic@master/dist/jspdf.plugin.arabic.js"></script>
+
+</body>
+</html>
