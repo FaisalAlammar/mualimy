@@ -20,6 +20,8 @@ from uuid import uuid4
 from typing import Dict, List
 import requests
 import time
+from fastapi import APIRouter
+
 
 # إعدادات Azure TTS
 AZURE_API_KEY = "FsKgVmQOzmTmmaF4iYFt6sk0AhgKeqNdn5Ms4oFQNDpqxzGZSD3CJQQJ99BEACF24PCXJ3w3AAAYACOGIQN0"
@@ -50,12 +52,6 @@ def azure_text_to_speech(text, output_path):
         print(response.text)
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/distiluse-base-multilingual-cased-v1"
-)
 
 llm = Ollama(
     model="command-r7b-arabic",
@@ -63,6 +59,43 @@ llm = Ollama(
     num_ctx=2048,
     num_thread=4
 )
+
+# Use Ollama as the subject router
+def route_subject_with_llm(question: str) -> str:
+    router_prompt = (
+        "حدد بدقة موضوع السؤال التالي، فقط كلمة واحدة (فيزياء أو كيمياء أو أحياء)، ولا شيء غير ذلك.\n"
+        f"السؤال: {question}\n"
+        "الموضوع:"
+    )
+    response = llm(router_prompt)
+    # Optionally: Clean up, make lowercase, etc.
+    subject = response.strip().replace(" ", "").replace(":", "").lower()
+    # Map to your subject system
+    if "فيزياء" in subject:
+        return "physics"
+    if "كيمياء" in subject:
+        return "chemistry"
+    if "أحياء" in subject or "احياء" in subject:
+        return "biology"
+    return None
+
+subject_db_map = {
+    "physics":    ("db_physics",   "معلم الفيزياء"),
+    "chemistry":  ("db_chemistry", "معلم الكيمياء"),
+    "biology":    ("db_biology",   "معلم الأحياء"),
+}
+
+
+ 
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/distiluse-base-multilingual-cased-v1"
+)
+
+
 
 conversation_memories: Dict[str, ConversationBufferMemory] = {}
 chat_histories: Dict[str, List[Dict]] = {}
@@ -89,21 +122,7 @@ QA_PROMPT = PromptTemplate(
     """
 )
 
-def is_general_knowledge_question(question):
-    general_keywords = [
-        "عاصمة", "أين تقع", "عدد السكان", "من هو", "ما اسم", "أكبر", "أصغر", "متى", "كم", "أين", "موقع", "دولة", "مدينة"
-    ]
-    return any(kw in question for kw in general_keywords)
 
-def detect_subject(question, subject_keywords):
-    """
-    Detects subject if question contains any subject-specific keywords.
-    Returns subject string if found, else None.
-    """
-    for teacher, keywords in subject_keywords.items():
-        if any(kw in question for kw in keywords):
-            return teacher
-    return None
 
 @app.on_event("startup")
 async def startup_event():
@@ -123,83 +142,7 @@ def shutdown_event():
 async def read_root(request: Request):
     return templates.TemplateResponse("chat.html", {"request": request})
 
-async def process_question(question: str, conversation_id: str) -> Dict:
-    if is_general_knowledge_question(question):
-        return {"answer": "لم يتم العثور على إجابة."}
-
-    db_paths = [
-        ("معلم الفيزياء", "db_physics"),
-        ("معلم الكيمياء", "db_chemistry"),
-        ("معلم الأحياء", "db_biology"),
-    ]
-
-    subject_keywords = {
-        "معلم الفيزياء": ["فيزياء", "قانون", "طاقة", "حركة", "كتلة", "تسارع", "قوة", "نيوتن", "ميكانيكا", "مغناطيسية"],
-        "معلم الكيمياء": ["كيمياء", "عنصر", "مركب", "تفاعل", "محلول", "حمض", "قاعدة", "جدول دوري", "ذرة", "إلكترون", "أيون"],
-        "معلم الأحياء": ["أحياء", "خلية", "DNA", "عضية", "غشاء", "نواة", "جين", "تكاثر", "نبات", "حيوان", "بكتيريا"]
-    }
-
-    # Check if the question clearly mentions a subject
-    detected_subject = detect_subject(question, subject_keywords)
-    candidate_answers = []
-
-    # Helper to append candidates
-    def add_candidate(teacher, path, doc):
-        candidate_answers.append({
-            "teacher": teacher,
-            "db_path": path,
-            "doc": doc,
-            "content_length": len(doc.page_content)
-        })
-
-    if detected_subject:
-        # Prefer docs from detected subject, but fallback if no relevant keyword in doc
-        for teacher, path in db_paths:
-            db = FAISS.load_local(path, embedding_model, allow_dangerous_deserialization=True)
-            retriever = db.as_retriever()
-            docs = await asyncio.get_event_loop().run_in_executor(
-                executor,
-                lambda: retriever.get_relevant_documents(question)
-            )
-            if docs:
-                top_doc = docs[0]
-                # If the doc contains subject keyword, boost priority, else accept anyway
-                if any(kw in top_doc.page_content for kw in subject_keywords[teacher]):
-                    # Strong candidate
-                    add_candidate(teacher, path, top_doc)
-                elif teacher == detected_subject:
-                    # Accept as candidate if from detected subject, even without keyword
-                    add_candidate(teacher, path, top_doc)
-        # If nothing, fallback to normal RAG search over all DBs
-        if not candidate_answers:
-            for teacher, path in db_paths:
-                db = FAISS.load_local(path, embedding_model, allow_dangerous_deserialization=True)
-                retriever = db.as_retriever()
-                docs = await asyncio.get_event_loop().run_in_executor(
-                    executor,
-                    lambda: retriever.get_relevant_documents(question)
-                )
-                if docs:
-                    add_candidate(teacher, path, docs[0])
-    else:
-        # Ambiguous: collect top doc from all DBs regardless of keywords
-        for teacher, path in db_paths:
-            db = FAISS.load_local(path, embedding_model, allow_dangerous_deserialization=True)
-            retriever = db.as_retriever()
-            docs = await asyncio.get_event_loop().run_in_executor(
-                executor,
-                lambda: retriever.get_relevant_documents(question)
-            )
-            if docs:
-                add_candidate(teacher, path, docs[0])
-
-    if not candidate_answers:
-        return {"answer": "لم يتم العثور على إجابة."}
-
-    best = max(candidate_answers, key=lambda x: x["content_length"])
-    teacher = best["teacher"]
-    db_path = best["db_path"]
-
+async def process_question(question: str, conversation_id: str, db_path: str, teacher: str) -> Dict:
     db = FAISS.load_local(db_path, embedding_model, allow_dangerous_deserialization=True)
     retriever = db.as_retriever()
     memory = get_memory(conversation_id)
@@ -231,7 +174,7 @@ async def process_question(question: str, conversation_id: str) -> Dict:
         "answer": response
     })
 
-    timestamp = int(time.time() * 1000)  # عدد المللي ثانية منذ 1970
+    timestamp = int(time.time() * 1000)
     audio_file_name = f"teacher_response_{conversation_id}_{timestamp}.mp3"
     audio_dir = "static/audio"
     os.makedirs(audio_dir, exist_ok=True)
@@ -247,8 +190,14 @@ async def process_question(question: str, conversation_id: str) -> Dict:
 @app.post("/ask")
 async def ask_question(request: Request, question: str = Form(...)):
     conversation_id = request.headers.get("X-Conversation-ID", str(uuid4()))
+    # 1. Route using LLM agent
+    subject = route_subject_with_llm(question)
+    if subject not in subject_db_map:
+        return JSONResponse({"answer": "لم يتم العثور على إجابة."})
+    db_path, teacher = subject_db_map[subject]
+    # 2. Normal flow
     try:
-        result = await process_question(question, conversation_id)
+        result = await process_question(question, conversation_id, db_path, teacher)
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -257,44 +206,35 @@ async def ask_question(request: Request, question: str = Form(...)):
 async def record_voice(request: Request, audio: UploadFile = File(...)):
     conversation_id = request.headers.get("X-Conversation-ID", str(uuid4()))
     try:
-        # 1. حفظ الملف المؤقت
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"recording_{conversation_id}.wav")
-        
         async with aiofiles.open(file_path, 'wb') as out_file:
             content = await audio.read()
             await out_file.write(content)
-
-        # 2. تحويل الصوت إلى نص
         model = whisper.load_model("base")
         result = await asyncio.get_event_loop().run_in_executor(
             executor,
             lambda: model.transcribe(file_path, language="ar")
         )
         transcript = result["text"].strip()
-        print(f"النص المعترف عليه: {transcript}")
-
         if not transcript:
             return JSONResponse({"error": "لم يتم التعرف على كلام"}, status_code=400)
-
-        # 3. معالجة السؤال
-        qa_result = await process_question(transcript, conversation_id)
-        print(f"نتيجة المعالجة: {qa_result}")
-
-        # 4. تنظيف الملف المؤقت
+        # Route with LLM
+        subject = route_subject_with_llm(transcript)
+        if subject not in subject_db_map:
+            return JSONResponse({"answer": "لم يتم العثور على إجابة."})
+        db_path, teacher = subject_db_map[subject]
+        qa_result = await process_question(transcript, conversation_id, db_path, teacher)
         try:
             os.remove(file_path)
         except Exception as e:
             print(f"خطأ في حذف الملف المؤقت: {e}")
-
         return JSONResponse({
             "transcript": transcript,
             "answer": qa_result.get("answer", "لا توجد إجابة"),
             "audio_file": qa_result.get("audio_file", "")
         })
-
     except Exception as e:
-        print(f"حدث خطأ: {str(e)}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
 

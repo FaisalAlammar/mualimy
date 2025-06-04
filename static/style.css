@@ -1,8 +1,30 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Changa:wght@400;700&display=swap');
 
-/* ============================================================================ */
-/*                                  الهيدر (Header)                               */
-/* ============================================================================ */
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Changa', sans-serif;
+  background: url('/static/tuwaiaq-bg.png') no-repeat top right, #f7f4fc;
+  background-size: 300px auto;
+  background-attachment: fixed;
+  color: #1e1e1e;
+  direction: rtl;
+}
+
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-top: 90px;
+  margin-bottom: 60px;
+  overflow: hidden;
+}
+
+/* ------------------- الهيدر ------------------- */
 .custom-header {
   position: fixed;
   top: 0;
@@ -17,52 +39,40 @@
   align-items: center;
 }
 
-/* الشعار */
-.logo-fixed {
-  width: 200px;
-  height: auto;
-  margin-left: 22px;
-}
-
-/* محتوى الهيدر بالكامل: الشعار والعنوان والأزرار */
 .header-content {
   width: 100%;
   max-width: 1900px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 20px;
+  justify-content: space-between;
   padding: 0 3vw;
-  /* عند ضيق المساحة، نسمح بالالتفاف */
-  flex-wrap: wrap;
 }
 
-/* عنوان الشات داخل الهيدر */
-.chat-title {
-  color: #4931AF;
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 30px 0 0;
-  flex-grow: 1;
-  text-align: right;
-  font-family: 'Changa', sans-serif;
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
+.logo-fixed {
+  height: 100px;
+  object-fit: contain;
+}
 
-/* ============================================================================ */
-/*                       ترتيب الأزرار في الهيدر (Controls)                       */
-/* ============================================================================ */
+.logo-ma3limi {
+  height: 170px;
+  object-fit: contain;
+}
+
 .controls {
   display: flex;
-  flex-wrap: wrap;     /* نسمح للأزرار بالالتفاف عند ضيق المساحة */
+  flex-wrap: wrap;
   gap: 0.7rem;
-  margin-right: auto;
 }
 
-/* تنسيق الأزرار داخل .controls */
 .controls button {
-  background-color: #4931AF;
+  background-color: #5f259f;
   color: white;
   padding: 0.6rem 1.2rem;
   border: none;
@@ -76,90 +86,66 @@
   align-items: center;
   gap: 0.4rem;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  white-space: nowrap; /* منع تكسّر النص داخل الزر */
+  white-space: nowrap;
 }
 
 .controls button:hover {
-  background-color: #3B2785;
+  background-color: #431d75;
 }
 
-/* ============================================================================ */
-/*                           صندوق الدردشة الرئيسي (Chat Container)                */
-/* ============================================================================ */
+/* ------------------- الفوتر ------------------- */
+.custom-footer {
+  background-color: #5f259f;
+  color: white;
+  text-align: center;
+  padding: 2px 4px;
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: bold;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  font-family: 'Changa', Arial, Tahoma, sans-serif;
+  z-index: 10;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* ------------------- الشات ------------------- */
 .chat-container {
-  /* عند الفتح لأول مرة، نترك الارتفاع تلقائيًا ثم نجعل الـ min-height يشير إلى 70vh */
-  
-  margin: 120px auto 2rem auto !important;
-  width: 95vw;
-  max-width: 1550px;
-  /*padding: 2.5rem 2vw 1.2rem 2vw;*/
-  padding: 1.2rem 0.5vw;
-  background: #fefeff;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
-  border-radius: 18px;
-  position: relative;
-  min-height: 70vh;    /* أقل ارتفاع يتسع للشاشة بنسبة 70% */
-  /* أزلنا height: 76vh حتى يصبح المحتوى يكمّل الارتفاع تلقائيًا */
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  border-top: 10px solid #4931AF;
-  transition: max-width 0.3s, width 0.3s, margin 0.3s;
+  padding: 1rem;
+  background: #fefeff;
+  border-top: 10px solid #5f259f;
+  border-radius: 18px;
+  max-width: 1550px;
+  margin: auto;
+  width: 95vw;
+  overflow: hidden;
 }
 
-
 #chat-box {
-  flex: 1;            /* حتى يمتد لملء المساحة المتبقية */
-  margin: 0 0 1rem 0;
-  min-height: 200px;  /* ارتفاع أولي صغير */
-  max-height: 58vh;   /* حد أقصى للتمرير إذا كثرت الرسائل */
+  flex: 1;
   overflow-y: auto;
   background: #fbfaff;
   border: 1px solid #ddd5f3;
   padding: 1rem;
   border-radius: 12px;
-  transition: max-height 0.3s;
-}
-/* ============================================================================ */
-/*                           تنسيق الرسائل (Messages)                             */
-/* ============================================================================ */
-/* رسالة المستخدم */
-.message.user {
-  background: #f0f1ff;
-  border-right: 4px solid #4931AF;
-  margin-left: auto;
-  text-align: right;
-  color: #3B2785;  
-  border-radius: 8px 0 0 8px;
-  max-width: 85%;
-  width: fit-content;
-  padding: 12px 18px;
-  direction: rtl;
+  padding-bottom: 2rem;
 }
 
-/* رسالة المعلم */
-.message.teacher {
-  background: #f0f1ff;             
-  border-right: 4px solid #4931AF;  
-  margin-left: auto;
-  text-align: right;
-  border-radius: 8px 0 0 8px;
-  max-width: 85%;
-  width: fit-content;
-  padding: 12px 18px;
-  direction: rtl;
-  color: #3B2785;                   /* نص داكن للتباين */
-  font-family: 'Changa', sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  animation: fadeInUp 0.3s ease-out;
-  margin-bottom: 1rem;
-  white-space: pre-wrap;
-  position: relative;
+#welcome-message,
+.welcome-message {
+  color: #5f259f !important;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 143px;
 }
 
-/* إعدادات عامة لكلا النوعين */
+/* ------------------- الرسائل ------------------- */
 .message.user,
 .message.teacher {
   line-height: 1.6;
@@ -169,9 +155,81 @@
   margin-bottom: 1rem;
   white-space: pre-wrap;
   position: relative;
+  max-width: 85%;
+  width: fit-content;
+  padding: 12px 18px;
+  direction: rtl;
 }
 
-/* زرّ أيقونة التشغيل الصوتي */
+.message.user {
+  background: #f0f1ff;
+  border-right: 4px solid #5f259f;
+  color: #3B2785;
+  margin-left: auto;
+  text-align: right;
+  border-radius: 8px 0 0 8px;
+}
+
+.message.teacher {
+  background: #f0f1ff;
+  border-right: 4px solid #a38fce;
+  color: #3B2785;
+  margin-left: auto;
+  text-align: right;
+  border-radius: 8px 0 0 8px;
+  font-family: 'Changa', sans-serif;
+}
+
+/* ------------------- الفورم ------------------- */
+#chat-form {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: auto;
+  margin-bottom: 0;
+  width: 95vw;
+  max-width: 1550px;
+  margin-left: auto;
+  margin-right: auto;
+  align-items: center;
+  background: transparent;
+  position: relative;
+}
+
+#chat-form input {
+  flex: 1;
+  height: 62px;
+  padding: 0 1rem;
+  border-radius: 8px;
+  border: 1px solid #c8b9e5;
+  font-size: 1rem;
+  background: #f7f4fc;
+  box-sizing: border-box;
+  font-family: 'Changa', sans-serif;
+}
+
+#chat-form button {
+  flex-shrink: 0;
+  width: 62px;
+  height: 62px;
+  border: none;
+  border-radius: 8px;
+  background: #5f259f;
+  color: white;
+  font-family: 'Changa', sans-serif;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+#chat-form button:hover {
+  background: #471c78;
+}
+
 .audio-icon-btn {
   background: transparent;
   border: none;
@@ -189,80 +247,6 @@
   background: #471c7822;
 }
 
-/* ============================================================================ */
-/*                    نموذج الدردشة (Chat Form: Input + Buttons)                 */
-/* ============================================================================ */
-#chat-form {
-  display: flex;
-  gap: 0.7rem;
-  margin-top: auto;     /* يبقى الأسفل دومًا */
-  margin-bottom: 0;
-  width: 95vw;          /* يطابق عرض .chat-container */
-  max-width: 1550px;    /* يطابق الحد الأقصى لعرض .chat-container */
-  margin-left: auto;
-  margin-right: auto;
-  align-items: center;
-  background: transparent;
-  position: relative;
-}
-
-/* حقل الإدخال (Input) */
-#chat-form input {
-  flex: 1;                   /* يشغل المساحة المتبقية تلقائيًا */
-  height: 62px;
-  padding: 0 1rem;
-  border-radius: 8px;
-  border: 1px solid #c8b9e5;
-  font-size: 1rem;
-  background: #f7f4fc;
-  box-sizing: border-box;
-  font-family: 'Changa', sans-serif;
-}
-
-/* زرّ الإرسال (Submit) وزرّ التسجيل الصوتي */
-#chat-form button {
-  flex-shrink: 0;             /* منع انكماش الزرّ */
-  width: 62px;                /* حجم ثابت مربّع تقريبًا */
-  height: 62px;
-  border: none;
-  border-radius: 8px;
-  background: #4931AF;
-  color: white;
-  font-family: 'Changa', sans-serif;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-/* لون زرّ الإرسال والتفاعل عند المرور بالفأرة */
-#chat-form button:hover {
-  background: #3B2785
-;
-}
-
-/* ============================================================================ */
-/*                                  Loader                                        */
-/* ============================================================================ */
-.loader {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: #4931AF;
-  animation: spin 1s ease-in-out infinite;
-  margin-left: 5px;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* تأثير ظهور الرسالة (fade in up) */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -272,75 +256,4 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* ============================================================================ */
-/*                          إعدادات الهاتف والشاشات الصغيرة                        */
-/* ============================================================================ */
-@media (max-width: 1200px) {
-  /* تصغير شعار الهيدر */
-  .logo-fixed {
-    width: 90px;
-    margin-left: 8px;
-  }
-
-  /* تمديد صندوق الشات ليملأ الشاشة تقريبًا */
-  .chat-container {
-    width: 98vw;
-    max-width: 98vw;
-    min-height: 80vh;
-    /* height: 90vh;  -- أزلنا ارتفاعًا ثابتًا هنا */
-    padding: 1.2rem 0.5vw;
-  }
-
-  /* إعادة ترتيب محتوى الهيدر عموديًا إذا ضاقت المساحة */
-  .header-content {
-    flex-direction: column;
-    gap: 8px;
-    padding: 0 2vw;
-  }
-
-  /* تصغير عنوان الشات */
-  .chat-title {
-    font-size: 1.3rem;
-    margin: 0 10px 0 0;
-  }
-
-  /* جعل نموذج الدردشة عموديًا في الأجهزة الضيقة */
-  #chat-form {
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 0;
-    margin-bottom: 10px;
-  }
-  #chat-form input,
-  #chat-form button {
-    width: 100%;
-    font-size: 0.9rem;
-    padding: 0.7rem 0.8rem;
-  }
-
-  /* تصغير حجم الأزرار في الهيدر */
-  .controls button {
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-  }
-}
-
-/* ============================================================================ */
-/*                             إعدادات عامة للصفحة                                */
-/* ============================================================================ */
-body {
-  margin: 0;
-  font-family: 'Changa', sans-serif;
-  background: url('/static/tuwaiaq-bg.png') no-repeat top right, #f7f4fc;
-  background-size: 300px auto;
-  background-attachment: fixed;
-  color: #1e1e1e;
-  direction: rtl;
-}
-
-/* حفظ خط Changa للـ placeholder */
-#chat-form input::placeholder {
-  font-family: 'Changa', sans-serif;
 }

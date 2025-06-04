@@ -1,0 +1,56 @@
+# ------------------------
+# Python environments
+# ------------------------
+env*/
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+
+# ------------------------
+# System/Editor files
+# ------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# ------------------------
+# VS Code debug config
+# ------------------------
+*.code-workspace
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ------------------------
+# Output / builds
+# ------------------------
+*.zip
+*.tar.gz
+*.egg-info/
+dist/
+build/
+
+# ------------------------
+# PDF and screenshots
+# ------------------------
+*.pdf
+*.jpg
+*.jpeg
+
+# ------------------------
+# Static audio files (temporary)
+# ------------------------
+static/audio/*.mp3
+
+# ------------------------
+# Others (optional cleanups)
+# ------------------------
+*.sqlite3
+.env
+
+db_*/index.faiss
+db_*/index.pkl

@@ -1,3 +1,4 @@
+// إعداد معرف المحادثة
 let conversationId = localStorage.getItem('conversationId') || Date.now().toString();
 localStorage.setItem('conversationId', conversationId);
 
@@ -5,12 +6,9 @@ localStorage.setItem('conversationId', conversationId);
 const chatBox = document.getElementById("chat-box");
 const welcomeMsg = document.createElement("div");
 welcomeMsg.id = "welcome-message";
+welcomeMsg.className = "welcome-message"; 
 welcomeMsg.textContent = "مرحبًا بِك في مُعلِمي, كيف أُساعدك اليوم؟";
-welcomeMsg.style.textAlign = "center";
-welcomeMsg.style.color = "#4931AF";
-welcomeMsg.style.marginTop = "143px";
-welcomeMsg.style.fontSize = "2rem";
-welcomeMsg.style.fontWeight = "bold";
+welcomeMsg.style.setProperty("color", "#5f259f", "important");
 chatBox.appendChild(welcomeMsg);
 
 // Loader
@@ -28,18 +26,17 @@ function removeLoader() {
   if (loader) loader.remove();
 }
 
-// دالة موحدة لعرض الرسائل وتدعم زر الصوت
 function addToChat(sender, message, audioFile = null) {
   const welcome = document.getElementById("welcome-message");
   if (welcome) welcome.remove();
+
   const box = document.getElementById("chat-box");
   const msg = document.createElement("div");
   msg.className = sender === "أنت" ? "message user" : "message teacher";
   msg.style.display = "flex";
-  msg.style.alignItems = "flex-start"; // للمحاذاة من الأعلى
-  msg.style.direction = "rtl"; // دائمًا يمين لليسار (عربي)
+  msg.style.alignItems = "flex-start";
+  msg.style.direction = "rtl";
 
-  // زر الصوت (يكون في البداية)
   if (audioFile && sender !== "أنت") {
     const playBtn = document.createElement("button");
     playBtn.className = "audio-icon-btn";
@@ -53,7 +50,6 @@ function addToChat(sender, message, audioFile = null) {
     playBtn.style.marginLeft = "8px";
     playBtn.style.marginRight = "2px";
 
-    // إعداد الصوت
     const audio = new Audio(`/static/audio/${audioFile}?t=${Date.now()}`);
     playBtn.onclick = function() {
       if (!audio.paused) {
@@ -84,11 +80,9 @@ function addToChat(sender, message, audioFile = null) {
         </svg>
       `;
     };
-
     msg.appendChild(playBtn);
   }
 
-  // نص الرسالة (يأخذ بقية المساحة)
   const msgText = document.createElement("span");
   msgText.textContent = message;
   msgText.style.flex = "1";
@@ -127,6 +121,7 @@ document.getElementById("chat-form").addEventListener("submit", async function(e
   }
 });
 
+
 document.getElementById("voice-btn").addEventListener("click", async function() {
   const button = this;
   button.disabled = true;
@@ -135,6 +130,10 @@ document.getElementById("voice-btn").addEventListener("click", async function() 
   let recorder = null;
 
   try {
+        // 🧽 إزالة رسالة الترحيب مباشرة بعد بداية التسجيل
+    const welcome = document.getElementById("welcome-message");
+    if (welcome) welcome.remove();
+    
     // 1) طلب إذن الميكروفون وبدء التسجيل
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
