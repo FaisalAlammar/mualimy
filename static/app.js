@@ -282,7 +282,7 @@ document.getElementById("download-btn").addEventListener("click", () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "محادثة_مجلس_المعلمين.txt";
+      a.download = "محادثة_معلمي.pdf";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

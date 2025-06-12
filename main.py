@@ -10,6 +10,12 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.pagesizes import A4
+import platform
+
 import whisper
 import tempfile
 import os
@@ -21,6 +27,8 @@ from typing import Dict, List
 import requests
 import time
 from fastapi import APIRouter
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 
 # إعدادات Azure TTS
@@ -261,19 +269,85 @@ async def export_chat(request: Request):
         return JSONResponse({"error": "لا توجد محادثة لهذا المعرف"}, status_code=404)
 
     history = chat_histories[conversation_id]
-    export_text = ""
+
+    font_path = ("C:/Windows/Fonts/arial.ttf" if platform.system() == "Windows"
+                 else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    pdfmetrics.registerFont(TTFont("Arabic", font_path))
+
+    tmp_path = os.path.join(tempfile.gettempdir(), f"chat_{conversation_id}.pdf")
+    c = canvas.Canvas(tmp_path, pagesize=A4)
+    page_width, page_height = A4
+    margin = 40
+    usable_width = page_width - 2 * margin
+    x = page_width - margin
+    y = page_height - 80
+    page_number = 1
+
+    def draw_header():
+        nonlocal y
+        y = page_height - 80
+        c.setFont("Arabic", 16)
+        title = get_display(arabic_reshaper.reshape("محادثة مُعلّمي"))
+        c.drawCentredString(page_width / 2, y, title)
+        y -= 10
+        c.line(margin, y, page_width - margin, y)
+        y -= 30
+
+    def draw_footer():
+        c.setFont("Arabic", 12)
+        c.line(margin, 50, page_width - margin, 50)
+        c.drawCentredString(page_width / 2, 35, str(page_number))
+
+    def write_wrapped_text(text, line_height):
+        nonlocal y, page_number
+        c.setFont("Arabic", 14)
+        words = text.split()
+        lines = []
+        current_line = ""
+        for word in reversed(words):
+            test_line = f"{word} {current_line}".strip()
+            if pdfmetrics.stringWidth(test_line, "Arabic", 14) < usable_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+        if current_line:
+            lines.append(current_line)
+        lines = list(reversed(lines))
+
+        for line in lines:
+            if y < 70:
+                draw_footer()
+                c.showPage()
+                page_number += 1
+                draw_header()
+            c.drawRightString(x, y, line)
+            y -= line_height
+
+    draw_header()
+
     for item in history:
-        export_text += f"أنت: {item['question']}\n{item['answer']}\n\n"
+        question = item['question']
+        reshaped_q = get_display(arabic_reshaper.reshape(question))
+        write_wrapped_text(reshaped_q, 22)
 
-    tmp_path = os.path.join(tempfile.gettempdir(), f"chat_{conversation_id}.txt")
-    async with aiofiles.open(tmp_path, "w", encoding="utf-8") as f:
-        await f.write(export_text)
+        for line in item['answer'].split('\n'):
+            clean = line.strip()
+            if clean:
+                reshaped = get_display(arabic_reshaper.reshape(clean))
+                write_wrapped_text(reshaped, 20)
 
-    return FileResponse(
-        path=tmp_path,
-        filename="محادثة_مجلس_المعلمين.txt",
-        media_type="text/plain"
-    )
+        y -= 40
+        if y < 70:
+            draw_footer()
+            c.showPage()
+            page_number += 1
+            draw_header()
+
+    draw_footer()
+    c.save()
+
+    return FileResponse(path=tmp_path, filename="محادثة_معلمي.pdf", media_type="application/pdf")
 
 @app.post("/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
