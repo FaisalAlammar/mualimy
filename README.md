@@ -8,7 +8,7 @@
 A student can either type or record their question. The system automatically routes the query to the appropriate subject database, fetches relevant documents via FAISS embeddings, and generates a contextual answer with an optional audio response.
 
 
-![معلمي Interface](static/muallimi_screenshot.png)
+![معلمي Interface](static/InterFace.png)
 
 ---
 
@@ -27,17 +27,20 @@ A student can either type or record their question. The system automatically rou
   - HuggingFace embeddings for similarity search  
   - Ollama as the local LLM to generate answers in Arabic  
 
-- **Text-to-Speech (TTS)**  
-  - Uses Azure Cognitive Services (Arabic “Hamed” neural voice) or Google TTS (gTTS)  
-  - Generates an MP3 audio file for each answer  
+- **Text-to-Speech (TTS)**
+  - Uses Microsoft Azure Cognitive Services (Arabic “Hamed” neural voice)
+  - Generates an MP3 audio file for each answer
 
+- **Speech-to-Text (STT)**
+  - Uses Whisper for accurate transcription of spoken questions into text
+ 
 - **Conversation Memory**  
   - Stores chat history and context per session  
   - Maintains conversation buffer for follow-up questions  
 
 - **Export & Reset**  
   - “Start New Conversation” resets history  
-  - “Download Conversation” exports chat as a text file  
+  - “Download Conversation” exports chat as a pdf file  
 
 - **Responsive Web UI**  
   - FastAPI + Jinja2 templates  
@@ -56,7 +59,7 @@ A student can either type or record their question. The system automatically rou
 | **Embeddings**        | HuggingFace Embeddings (`sentence-transformers/distiluse-base-multilingual-cased-v1`) |
 | **Large Language Model** | Ollama commen-r7b-arabic (local LLM inference)                    |
 | **Speech-to-Text**    | OpenAI Whisper                                   |
-| **Text-to-Speech**    | Azure Cognitive Services (TTS) / gTTS            |
+| **Text-to-Speech**    | Azure Cognitive Services (TTS)             |
 | **Audio I/O**         | `aiofiles`, JavaScript Audio API                 |
 | **PDF Handling**      | PyPDF (`pypdf`), PDFKit + Pyppeteer (SSR for PDF export) |
 | **Environment & Dependencies** | Python 3.10+, `venv`, `pip`                   |
@@ -81,11 +84,10 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 Configure Azure Cognitive TTS (Optional)
-If you wish to use Azure TTS instead of gTTS, set these environment variables:
+If you wish to use Azure TTS, set these environment variables:
 
 export AZURE_API_KEY="<your_azure_subscription_key>"
 export AZURE_REGION="<your_region_name>"    
-Otherwise, the application will default to using gTTS (Google Text-to-Speech).
 
 Prepare FAISS Vector Stores
 You should already have per-subject FAISS indices saved locally under:
