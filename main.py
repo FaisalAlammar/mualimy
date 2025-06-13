@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -201,14 +201,28 @@ async def ask_question(request: Request, question: str = Form(...)):
     # 1. Route using LLM agent
     subject = route_subject_with_llm(question)
     if subject not in subject_db_map:
-        return JSONResponse({"answer": "لم يتم العثور على إجابة."})
+        return StreamingResponse(iter(["لم يتم العثور على إجابة."]), media_type="text/plain")
     db_path, teacher = subject_db_map[subject]
     # 2. Normal flow
     try:
-        result = await process_question(question, conversation_id, db_path, teacher)
-        return JSONResponse(result)
+        async def generate_response():
+            result = await process_question(question, conversation_id, db_path, teacher)
+            full_text = result["answer"]
+            audio_file = result["audio_file"]
+
+            # Streaming Response Text
+            for char in full_text:
+                yield char
+                # Sleep Time
+                await asyncio.sleep(0.01)
+
+            # نهاية: نضيف فاصل مميز لتُستخدم في JS لاستخراج audio_file
+            yield f"\n[AUDIO_FILE:{audio_file}]"
+
+        return StreamingResponse(generate_response(), media_type="text/plain")
+
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return StreamingResponse(iter([f"حدث خطأ: {str(e)}"]), media_type="text/plain")
 
 @app.post("/record")
 async def record_voice(request: Request, audio: UploadFile = File(...)):

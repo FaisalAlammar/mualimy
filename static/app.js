@@ -112,12 +112,101 @@ document.getElementById("chat-form").addEventListener("submit", async function(e
     },
     body: "question=" + encodeURIComponent(question)
   });
-  const data = await response.json();
+
+  // Streaming Response (NEW)
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let fullText = "";
+  let audioFile = null;
+
+  const teacherMsg = document.createElement("div");
+  teacherMsg.className = "message teacher";
+  teacherMsg.style.display = "flex";
+  teacherMsg.style.alignItems = "flex-start";
+  teacherMsg.style.direction = "rtl";
+  const msgText = document.createElement("span");
+  msgText.style.flex = "1";
+  msgText.style.display = "block";
+  teacherMsg.appendChild(msgText);
+  chatBox.appendChild(teacherMsg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  
+  let loaderRemoved = false;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value);
+    
+     if (!loaderRemoved && chunk.trim()) {
+    removeLoader();         // نحذف "جاري المعالجة" أول ما يبدأ الرد
+    loaderRemoved = true;   // نضمن أنها تنفذ مرة واحدة فقط
+  }
+    
+    fullText += chunk;
+    
+
+    if (chunk.includes("[AUDIO_FILE:")) {
+      const match = chunk.match(/\[AUDIO_FILE:(.*?)\]/);
+      if (match) {
+        audioFile = match[1].trim();
+        msgText.textContent = fullText.replace(match[0], "").trim();
+      }
+    } else {
+      for (let char of chunk) {
+  msgText.textContent += char;
+  await new Promise(resolve => setTimeout(resolve, 8));
+}
+
+    }
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
   removeLoader();
-  if (data.error) {
-    addToChat("المعلم", "حدث خطأ: " + data.error);
+
+  if (audioFile) {
+    const playBtn = document.createElement("button");
+playBtn.className = "audio-icon-btn";
+playBtn.innerHTML = `
+  <svg width="22" height="22" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="10" fill="#3B2785"/>
+    <polygon points="7,6 15,10 7,14" fill="#fff"/>
+  </svg>
+`;
+
+const audio = new Audio(`/static/audio/${audioFile}?t=${Date.now()}`);
+playBtn.onclick = function () {
+  if (!audio.paused) {
+    audio.pause();
+    audio.currentTime = 0;
+    playBtn.innerHTML = `
+      <svg width="22" height="22" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="10" fill="#3B2785"/>
+        <polygon points="7,6 15,10 7,14" fill="#fff"/>
+      </svg>
+    `;
   } else {
-    addToChat("المعلم", data.answer, data.audio_file); 
+    audio.play();
+    playBtn.innerHTML = `
+      <svg width="22" height="22" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="10" fill="#3B2785"/>
+        <rect x="7" y="6" width="2" height="8" fill="#fff"/>
+        <rect x="11" y="6" width="2" height="8" fill="#fff"/>
+      </svg>
+    `;
+  }
+};
+audio.onended = () => {
+  playBtn.innerHTML = `
+    <svg width="22" height="22" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="10" fill="#3B2785"/>
+      <polygon points="7,6 15,10 7,14" fill="#fff"/>
+    </svg>
+  `;
+};
+
+teacherMsg.insertBefore(playBtn, msgText);
+
   }
 });
 
