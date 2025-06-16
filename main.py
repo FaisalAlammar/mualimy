@@ -181,6 +181,8 @@ async def process_question(question: str, conversation_id: str, db_path: str, te
     audio_dir = "static/audio"
     os.makedirs(audio_dir, exist_ok=True)
     audio_path = os.path.join(audio_dir, audio_file_name)
+    clean_answer = answer.replace("**", "")
+    clean_answer = clean_answer.replace("###", "")
     azure_text_to_speech(answer, audio_path)
 
     return {
