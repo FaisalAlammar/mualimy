@@ -193,12 +193,12 @@ def find_image_for_answer(answer: str, question: str, subject: str) -> str | Non
     image_map = {
         "physics": {
 
-            "السقوط الحر":              "static/topic_images/physics/free_fall.png",
+            "السقوط الحر":              "static/topic_images/physics/free_fall.jpg",
             "القوة والحركة":           "static/topic_images/physics/force_motion.jpg",
-            "السرعة المنتظمة":         "static/topic_images/physics/uniform_velocity.png",
-            "قانون نيوتن الثالث":     "static/topic_images/physics/third_law.png",
-            "الاحتكاك":         		"static/topic_images/physics/friction.png",
-            "القوة العمودية":         "static/topic_images/physics/perpendicular_force.png",
+            "السرعة المنتظمة":         "static/topic_images/physics/uniform_velocity.jpg",
+            "قانون نيوتن الثالث":     "static/topic_images/physics/third_law.jpg",
+            "الاحتكاك":         		"static/topic_images/physics/friction.jpg",
+            "القوة العمودية":         "static/topic_images/physics/perpendicular_force.jpg",
 
         },
         "biology": {
