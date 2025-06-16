@@ -60,6 +60,8 @@ def azure_text_to_speech(text, output_path):
         print(response.text)
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 llm = Ollama(
     model="command-r7b-arabic",
@@ -71,21 +73,23 @@ llm = Ollama(
 # Use Ollama as the subject router
 def route_subject_with_llm(question: str) -> str:
     router_prompt = (
-        "حدد بدقة موضوع السؤال التالي، فقط كلمة واحدة (فيزياء أو كيمياء أو أحياء)، ولا شيء غير ذلك.\n"
+        "أنت مسؤول عن توجيه الأسئلة إلى أحد المواد التالية فقط: فيزياء، كيمياء، أحياء.\n"
+        "إذا لم يكن السؤال متعلقًا بأي من هذه المواد، أجب فقط بـ: 'غير معروف'.\n"
         f"السؤال: {question}\n"
         "الموضوع:"
     )
     response = llm(router_prompt)
-    # Optionally: Clean up, make lowercase, etc.
     subject = response.strip().replace(" ", "").replace(":", "").lower()
-    # Map to your subject system
+
     if "فيزياء" in subject:
         return "physics"
     if "كيمياء" in subject:
         return "chemistry"
     if "أحياء" in subject or "احياء" in subject:
         return "biology"
-    return None
+
+    # Explicit fallback if subject is unknown or not one of the three
+    return "unknown"
 
 subject_db_map = {
     "physics":    ("db_physics",   "معلم الفيزياء"),
@@ -93,17 +97,9 @@ subject_db_map = {
     "biology":    ("db_biology",   "معلم الأحياء"),
 }
 
-
- 
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
 embedding_model = HuggingFaceEmbeddings(
     model_name="sentence-transformers/distiluse-base-multilingual-cased-v1"
 )
-
-
 
 conversation_memories: Dict[str, ConversationBufferMemory] = {}
 chat_histories: Dict[str, List[Dict]] = {}
@@ -129,8 +125,6 @@ QA_PROMPT = PromptTemplate(
     الجواب:
     """
 )
-
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -195,14 +189,60 @@ async def process_question(question: str, conversation_id: str, db_path: str, te
         "conversation_id": conversation_id
     }
 
+def find_image_for_answer(answer: str, question: str, subject: str) -> str | None:
+    image_map = {
+        "physics": {
+
+            "السقوط الحر":               "static/topic_images/physics/free_fall.png",
+            "القوة والحركة":            "static/topic_images/physics/force_motion.jpg",
+            "استخدام قوانين نيوتن":     "static/topic_images/physics/newton_laws.png",
+            "السرعة المنتظمة":           "static/topic_images/physics/uniform_velocity.png",
+
+        },
+        "biology": {
+            "البكتيريا":             "static/topic_images/biology/bacteria.jpg",
+            "الفيروسات":             "static/topic_images/biology/viruses.jpg",
+            "الفطريات":              "static/topic_images/biology/fungi.jpg",
+            "المفصليات":             "static/topic_images/biology/arthropods.jpg",
+            "الخلية":                "static/topic_images/biology/cell.jpg",
+        },
+        "chemistry": {
+            "الجدول الدوري":         "static/topic_images/chemistry/periodic_table.jpg",
+            "الروابط التساهمية":     "static/topic_images/chemistry/covalent_bonds.jpg",
+            "الذرة":                  "static/topic_images/chemistry/atom.jpg",
+            "العنصر":                 "static/topic_images/chemistry/element.jpg",
+            "المركب":                 "static/topic_images/chemistry/compound.jpg",
+        }
+    }
+    q = question.lower()
+
+    # نبحث فقط في السؤال، مع التأكيد على استخدام dict كافتراضي
+    for keyword, img_path in image_map.get(subject, {}).items():
+        if keyword in q:
+            return img_path if img_path.startswith("/") else f"/{img_path}"
+    return None
+
+
 @app.post("/ask")
 async def ask_question(request: Request, question: str = Form(...)):
     conversation_id = request.headers.get("X-Conversation-ID", str(uuid4()))
+
     # 1. Route using LLM agent
     subject = route_subject_with_llm(question)
-    if subject not in subject_db_map:
-        return StreamingResponse(iter(["لم يتم العثور على إجابة."]), media_type="text/plain")
+
+    # 1.a. لو الموضوع ما انحسب داخل الخريطة
+    if subject == "unknown" or subject not in subject_db_map:
+        return StreamingResponse(iter(["الاجابة ليست متوفرة بالمنهج."]), media_type="text/plain")
+    
+    JSONResponse({
+            "answer": "لم يتم العثور على إجابة.",
+            "audio_file": "",
+            "conversation_id": conversation_id,
+            "images": []
+        })
+
     db_path, teacher = subject_db_map[subject]
+
     # 2. Normal flow
     try:
         async def generate_response():
@@ -210,6 +250,10 @@ async def ask_question(request: Request, question: str = Form(...)):
             full_text = result["answer"]
             audio_file = result["audio_file"]
 
+                    # **هنا** نستخدم الـ subject لمعرفة الصورة
+            img = find_image_for_answer(full_text, question, subject)
+            images = [img] if img else []
+            
             # Streaming Response Text
             for char in full_text:
                 yield char
@@ -219,20 +263,30 @@ async def ask_question(request: Request, question: str = Form(...)):
             # نهاية: نضيف فاصل مميز لتُستخدم في JS لاستخراج audio_file
             yield f"\n[AUDIO_FILE:{audio_file}]"
 
+            if images:
+            # دمج روابط الصور بفاصلة
+                imgs_str = ",".join(images)
+                yield f"\n[IMAGES:{imgs_str}]"
+
+
+
         return StreamingResponse(generate_response(), media_type="text/plain")
 
     except Exception as e:
         return StreamingResponse(iter([f"حدث خطأ: {str(e)}"]), media_type="text/plain")
 
+
 @app.post("/record")
 async def record_voice(request: Request, audio: UploadFile = File(...)):
     conversation_id = request.headers.get("X-Conversation-ID", str(uuid4()))
     try:
+        # حفظ الملف مؤقتاً
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"recording_{conversation_id}.wav")
         async with aiofiles.open(file_path, 'wb') as out_file:
-            content = await audio.read()
-            await out_file.write(content)
+            await out_file.write(await audio.read())
+
+        # تفريغ النص
         model = whisper.load_model("base")
         result = await asyncio.get_event_loop().run_in_executor(
             executor,
@@ -241,21 +295,39 @@ async def record_voice(request: Request, audio: UploadFile = File(...)):
         transcript = result["text"].strip()
         if not transcript:
             return JSONResponse({"error": "لم يتم التعرف على كلام"}, status_code=400)
-        # Route with LLM
+
+        # تحديد الموضوع
         subject = route_subject_with_llm(transcript)
         if subject not in subject_db_map:
-            return JSONResponse({"answer": "لم يتم العثور على إجابة."})
+            # حتى لو ما فيه subject، نرجّع JSON متوحد الشكل
+            return JSONResponse({
+                "transcript": transcript,
+                "answer": "لم يتم العثور على إجابة.",
+                "audio_file": "",
+                "images": []
+            })
+
+        # جلب الجواب
         db_path, teacher = subject_db_map[subject]
         qa_result = await process_question(transcript, conversation_id, db_path, teacher)
+
+        # اختيار الصورة المناسبة
+        img = find_image_for_answer(qa_result["answer"], transcript, subject)
+
+        # حذف الملف المؤقت
         try:
             os.remove(file_path)
         except Exception as e:
             print(f"خطأ في حذف الملف المؤقت: {e}")
+
+        # إرجاع JSON مع images
         return JSONResponse({
             "transcript": transcript,
             "answer": qa_result.get("answer", "لا توجد إجابة"),
-            "audio_file": qa_result.get("audio_file", "")
+            "audio_file": qa_result.get("audio_file", ""),
+            "images": [img] if img else []
         })
+
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -362,6 +434,7 @@ async def export_chat(request: Request):
     c.save()
 
     return FileResponse(path=tmp_path, filename="محادثة_معلمي.pdf", media_type="application/pdf")
+
 
 @app.post("/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):
