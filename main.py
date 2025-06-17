@@ -54,9 +54,9 @@ def azure_text_to_speech(text, output_path):
     if response.status_code == 200:
         with open(output_path, "wb") as f:
             f.write(response.content)
-        print("✅ تم توليد الرد الصوتي باللهجة السعودية.")
+        print(" تم توليد الرد الصوتي .")
     else:
-        print(f"❌ خطأ في تحويل النص إلى صوت: {response.status_code}")
+        print(f" خطأ في تحويل النص إلى صوت: {response.status_code}")
         print(response.text)
 
 app = FastAPI()
