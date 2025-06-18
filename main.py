@@ -103,6 +103,7 @@ embedding_model = HuggingFaceEmbeddings(
 
 conversation_memories: Dict[str, ConversationBufferMemory] = {}
 chat_histories: Dict[str, List[Dict]] = {}
+conversation_subjects: Dict[str, str] = {}
 executor = ThreadPoolExecutor(max_workers=2)
 
 def get_memory(conversation_id: str) -> ConversationBufferMemory:
@@ -231,10 +232,17 @@ def find_image_for_answer(answer: str, question: str, subject: str) -> str | Non
 async def ask_question(request: Request, question: str = Form(...)):
     conversation_id = request.headers.get("X-Conversation-ID", str(uuid4()))
 
-    # 1. Route using LLM agent
-    subject = route_subject_with_llm(question)
-
-    # 1.a. لو الموضوع ما انحسب داخل الخريطة
+    routed = route_subject_with_llm(question)
+    if routed in subject_db_map:
+        subject = routed
+        conversation_subjects[conversation_id] = subject
+    else:
+        if conversation_id not in conversation_subjects:
+            return StreamingResponse(
+                iter(["الاجابة ليست متوفرة بالمنهج."]),
+                media_type="text/plain"
+            )
+        subject = conversation_subjects[conversation_id]
     if subject == "unknown" or subject not in subject_db_map:
         return StreamingResponse(iter(["الاجابة ليست متوفرة بالمنهج."]), media_type="text/plain")
     
